@@ -1,0 +1,686 @@
+{
+  "name": "Catalog Checker",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1ncDzQtNR3ZWX_8LLYshY8QWvgIjEo4rKIhsMBYbCn3g/edit?gid=2071049067#gid=2071049067",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1103959479,
+          "mode": "list",
+          "cachedResultName": "Product_Catalog",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ncDzQtNR3ZWX_8LLYshY8QWvgIjEo4rKIhsMBYbCn3g/edit#gid=1103959479"
+        },
+        "options": {}
+      },
+      "id": "b93f0ba2-9226-404d-b6fb-9c8127bf0049",
+      "name": "Google Sheets: Read Product Data Export",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        200,
+        -20
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lioaPPYFwv93WKvx",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Assess the semantic relevance between the product name, its description, and its bullet points.\n\nConsider:\n- Does the description fully elaborate on the product name?\n- Are the bullet points consistent with and supported by the product name and description?\n- Is there any misleading or irrelevant information?\n\nProduct Name: {{ $json.ProductName }}\nProduct ID: {{ $json.ProductID }}\n\nProduct Description: {{ $json.ProductDescription_Raw }}\n\nBullet Points:\n- {{ $json.BulletPoint1 }}\n- {{ $json.BulletPoint2 }}\n- {{ $json.BulletPoint3 }}\n- {{ $json.BulletPoint4 }}\n- {{ $json.BulletPoint5 }}\n\nIn addition to the relevance score and justification, also identify the primary error_type from the following predefined list that best describes the content issue. If no specific error type applies, use 'Other Content Anomaly'. If the content is perfectly relevant, use 'No Specific Issue'.\n\nError Types: [\nMisleading Information,\nIrrelevant Content,\nIncomplete Information,\nFormatting/Readability,\nInaccurate Specification,\nOther Content Anomaly,\nNo Specific Issue]\n\nOutput a relevance score from 1 (very low relevance) to 10 (perfect relevance), Error type, and a brief justification.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a helpful and meticulous quality assurance AI, specialized in e-commerce product content. Your goal is to evaluate content accuracy and relevance based on provided guidelines."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        680,
+        0
+      ],
+      "id": "5eb8e108-6cc8-44e4-a8c6-6bd10e5b5148",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"ProductId\": \"PET001\",\n  \"relevance_score\": 7,\n  \"issue_fields\": [\n    \"ProductDescription_Raw\",\n    \"BulletPoint1\",\n    \"BulletPoint2\",\n    \"BulletPoint4\"\n  ],\n  \"error_type\": [\n    \"Misleading Information\",\n    \"Formatting/Readability\"\n  ],\n  \"justification\": \"Multiple content quality issues (e.g., irrelevance, typos, misleading claim) reduce clarity. Core product ID good.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        180
+      ],
+      "id": "bd5f0524-4c7b-4a8d-920d-aea2dff3ca10",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-preview-05-20",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        700,
+        180
+      ],
+      "id": "3ea03b00-5fb4-4b0f-8fd8-b5c28edb5eea",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "O7W4OVJAj8CnK6eV",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f0b64cc0-2e96-4fa4-82cc-3269f94f968a",
+              "leftValue": "={{ $json.output.relevance_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "b1bb324a-acc9-46a9-9032-f30ab0f53c09",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "206394d8-0338-47bb-9e7b-749ff95c0a53",
+              "name": "productId",
+              "value": "={{ $json.output.ProductId }}",
+              "type": "string"
+            },
+            {
+              "id": "a6dc73d0-a1da-4a2a-9f42-f4ad9da5565b",
+              "name": "productName",
+              "value": "={{ $('Google Sheets: Read Product Data Export').item.json.ProductName }}",
+              "type": "string"
+            },
+            {
+              "id": "d7a78796-dd9a-468d-bdc4-ba03981cf9fa",
+              "name": "CategoryLevel1",
+              "value": "={{ $('Google Sheets: Read Product Data Export').item.json.CategoryLevel1 }}",
+              "type": "string"
+            },
+            {
+              "id": "1797299b-c6b5-49d3-b77c-489a4f461f6f",
+              "name": "CategoryLevel2",
+              "value": "={{ $('Google Sheets: Read Product Data Export').item.json.CategoryLevel2 }}",
+              "type": "string"
+            },
+            {
+              "id": "51d9896c-7928-4f86-9eea-a77b4f104d0d",
+              "name": "CategoryLevel3",
+              "value": "={{ $('Google Sheets: Read Product Data Export').item.json.CategoryLevel3 }}",
+              "type": "string"
+            },
+            {
+              "id": "a877501e-8a3f-43cc-bfcf-038c186a3fa0",
+              "name": "relevanceScore",
+              "value": "={{ $json.output.relevance_score }}",
+              "type": "number"
+            },
+            {
+              "id": "b05e1d7d-f828-4f38-8bb4-d5f774042135",
+              "name": "errorType",
+              "value": "={{ $json.output.error_type }}",
+              "type": "array"
+            },
+            {
+              "id": "e85aa9c2-463c-4348-80c9-57937787f10a",
+              "name": "justification",
+              "value": "={{ $json.output.justification }}",
+              "type": "string"
+            },
+            {
+              "id": "7bd80b01-3416-4138-9dd2-21fdee093fb1",
+              "name": "issueFields",
+              "value": "={{ $json.output.issue_fields }}",
+              "type": "array"
+            },
+            {
+              "id": "7b9e01b1-b0c3-4543-bff6-911dd7816fe4",
+              "name": "url",
+              "value": "={{ $('Google Sheets: Read Product Data Export').item.json.ProductPageURL_Coupang }}",
+              "type": "string"
+            },
+            {
+              "id": "7ddca535-faf7-4ef6-a530-800f5954480e",
+              "name": "lastModifiedDate",
+              "value": "={{ $('Google Sheets: Read Product Data Export').item.json.LastModifiedDate_ProductInfo }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1300,
+        0
+      ],
+      "id": "d583ec66-fa16-43e6-b1cb-e5882bec3884",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "path": "contentValidation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        -20
+      ],
+      "id": "3a22d329-1407-42b2-a5c3-d79cca337b37",
+      "name": "Webhook",
+      "webhookId": "6dea5041-b7a8-4681-bf58-475398d25fb9"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1520,
+        0
+      ],
+      "id": "f07d3ff2-218f-4c22-8b2f-b2d8fe38723d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1ncDzQtNR3ZWX_8LLYshY8QWvgIjEo4rKIhsMBYbCn3g",
+          "mode": "list",
+          "cachedResultName": "Coupang_Demo_sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ncDzQtNR3ZWX_8LLYshY8QWvgIjEo4rKIhsMBYbCn3g/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1103959479,
+          "mode": "list",
+          "cachedResultName": "Product_Catalog",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ncDzQtNR3ZWX_8LLYshY8QWvgIjEo4rKIhsMBYbCn3g/edit#gid=1103959479"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "If_Error": "={{ $json.output.relevance_score }}",
+            "ProductID": "={{ $json.output.ProductId }}"
+          },
+          "matchingColumns": [
+            "ProductID"
+          ],
+          "schema": [
+            {
+              "id": "ProductID",
+              "displayName": "ProductID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "InternalItemID",
+              "displayName": "InternalItemID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ProductName",
+              "displayName": "ProductName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Brand",
+              "displayName": "Brand",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CategoryLevel1",
+              "displayName": "CategoryLevel1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CategoryLevel2",
+              "displayName": "CategoryLevel2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CategoryLevel3",
+              "displayName": "CategoryLevel3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ProductDescription_Raw",
+              "displayName": "ProductDescription_Raw",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BulletPoint1",
+              "displayName": "BulletPoint1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BulletPoint2",
+              "displayName": "BulletPoint2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BulletPoint3",
+              "displayName": "BulletPoint3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BulletPoint4",
+              "displayName": "BulletPoint4",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BulletPoint5",
+              "displayName": "BulletPoint5",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "OriginalPrice",
+              "displayName": "OriginalPrice",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SalePrice",
+              "displayName": "SalePrice",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CurrencyCode",
+              "displayName": "CurrencyCode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "StockStatus",
+              "displayName": "StockStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "MainImageURL",
+              "displayName": "MainImageURL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AdditionalImageURLs",
+              "displayName": "AdditionalImageURLs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Color",
+              "displayName": "Color",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Size_Dimension",
+              "displayName": "Size_Dimension",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Weight_Volume",
+              "displayName": "Weight_Volume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Other_Key_Specs",
+              "displayName": "Other_Key_Specs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ProductPageURL_Coupang",
+              "displayName": "ProductPageURL_Coupang",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LastModifiedDate_ProductInfo",
+              "displayName": "LastModifiedDate_ProductInfo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "If_Error",
+              "displayName": "If_Error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1100,
+        160
+      ],
+      "id": "fb6f8dd8-a9b0-43cc-82f8-64fec26e5ba5",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lioaPPYFwv93WKvx",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "16818eac-fb8d-4d24-b987-28b02bd702ac",
+              "leftValue": "={{ $json.If_Error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "7420c357-b1f1-417c-9885-cf886696b25a",
+              "leftValue": "={{ $json.If_Error }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        420,
+        -20
+      ],
+      "id": "bf79b838-a926-48c8-bcd9-0272b392ac81",
+      "name": "If Score >= 7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets: Read Product Data Export": {
+      "main": [
+        [
+          {
+            "node": "If Score >= 7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets: Read Product Data Export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        []
+      ]
+    },
+    "If Score >= 7": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8a48d9b1-bd2d-44d0-a850-4985f0c2b57f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a44d63c81aee944f5d470c5e5a747d0b0fef73998c9354fbe9e133b882ef4532"
+  },
+  "id": "jR6wST8rZPVnEgnW",
+  "tags": []
+}
