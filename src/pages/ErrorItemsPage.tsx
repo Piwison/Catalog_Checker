@@ -30,10 +30,23 @@ const ErrorItemsPage: React.FC = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await response.json();
-      // Assuming the API returns a single item, wrap it in an array
-      // If it already returns an array, you can use setErrorItems(data);
-      setErrorItems(Array.isArray(data) ? data : [data]);
+      const responseData = await response.json(); // Renamed to avoid confusion with item.data
+      console.log("Raw data from API:", responseData);
+
+      let itemsToSet: ErrorItem[] = [];
+      // Check if responseData is an array and if its first element has a 'data' property that is also an array.
+      if (Array.isArray(responseData) && responseData.length > 0 && responseData[0] && Array.isArray(responseData[0].data)) {
+        itemsToSet = responseData[0].data.filter((item: any): item is ErrorItem => item && typeof item.productId === 'string'); // Extract the nested array and ensure type safety
+      } else if (Array.isArray(responseData)) {
+        // Handle cases where the API might return a direct array of ErrorItems (original expected format)
+        itemsToSet = responseData.filter((item: any): item is ErrorItem => item && typeof item.productId === 'string');
+      } else if (responseData && typeof responseData.productId === 'string') {
+        // Handle cases where the API might return a single ErrorItem object
+        itemsToSet = [responseData as ErrorItem];
+      }
+
+      console.log("Items being set to state:", itemsToSet);
+      setErrorItems(itemsToSet);
     } catch (error) {
       console.error("Failed to fetch error items:", error);
       if (error instanceof Error) {
@@ -52,7 +65,8 @@ const ErrorItemsPage: React.FC = () => {
   }, [fetchErrorItems]);
 
   const filteredItems = useMemo(() => {
-    return errorItems.filter((item: ErrorItem) => {
+    console.log("errorItems before filtering:", errorItems);
+    const result = errorItems.filter((item: ErrorItem) => {
       const matchesSearch = searchTerm === '' ||
         item.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.productName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -62,6 +76,8 @@ const ErrorItemsPage: React.FC = () => {
 
       return matchesSearch && matchesViolation;
     });
+    console.log("filteredItems after filtering:", result);
+    return result;
   }, [searchTerm, violationFilter, errorItems]);
 
   const toggleRowExpansion = (productId: string) => {

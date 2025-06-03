@@ -10,7 +10,7 @@ const Navbar: React.FC = () => {
           <div className="flex items-center">
             <CheckSquare className="h-8 w-8 text-blue-600" />
             <span className="ml-2 text-xl font-semibold text-gray-800">
-              Coupang Catalog Checker
+              Catalog Content Auditor
             </span>
           </div>
           

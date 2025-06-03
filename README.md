@@ -6,6 +6,37 @@ This project is designed to check and validate product catalog content. It inter
 
 - Node.js and npm (or yarn) for the frontend application.
 - An n8n instance (local or cloud) for the backend workflow.
+- Google account for Google Sheets integration.
+- Google Gemini API key for the AI model integration.
+
+## Quick Start
+
+1. **Clone and set up the frontend:**
+   ```bash
+   git clone <your-repository-url>
+   cd catalog-checker
+   npm install
+   ```
+
+2. **Set up n8n workflow:**
+   - Import `Catalog_Checker.json` into your n8n instance
+   - Upload `Sample_Demo_sheet.csv` to Google Sheets
+   - Configure the Google Sheets nodes in the workflow to connect to your sheet
+   - Set up the Google Gemini AI node with your API credentials
+   - Activate the workflow and test the webhook endpoint
+
+3. **Configure the frontend:**
+   ```bash
+   # Create .env file with your n8n webhook URL
+   echo "VITE_N8N_WEBHOOK_URL=http://localhost:5678/webhook/contentValidation" > .env
+   ```
+
+4. **Start the application:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Access the application** at http://localhost:5173
 
 ## Getting Started
 
@@ -37,7 +68,26 @@ This project is designed to check and validate product catalog content. It inter
 
 ### 2. Backend n8n Workflow Setup
 
-See the [n8n Workflow Details](#n8n-workflow-details) section for instructions on importing and configuring the backend workflow.
+1. **Import the workflow:**
+   - Open your n8n instance
+   - Go to "Workflows" and click "Import from File"
+   - Select the `Catalog_Checker.json` file from this project
+
+2. **Set up Google Sheets:**
+   - Import `Sample_Demo_sheet.csv` into a new Google Sheet
+   - Configure the Google Sheets nodes in the workflow to point to your sheet
+   - Update the `documentId` and `sheetName` parameters with your Google Sheet details
+
+3. **Configure the AI model:**
+   - Set up Google Gemini API credentials in the n8n instance
+   - Ensure the model is connected to the "Google Gemini Chat Model" node
+
+4. **Test the workflow:**
+   - Activate the workflow
+   - Test the webhook endpoint by sending a request to it
+   - Verify data is correctly processed through the workflow
+
+See the [n8n Workflow Details](#n8n-workflow-details) section for detailed instructions on the workflow configuration.
 
 ## Frontend Configuration
 
